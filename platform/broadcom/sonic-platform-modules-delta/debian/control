@@ -29,3 +29,9 @@ Package: platform-modules-ag9032v2a
 Architecture: amd64
 Depends: linux-image-4.9.0-14-2-amd64
 Description: kernel modules for platform devices such as syseeprom, sfp
+
+Package: platform-modules-ag9032v2
+Architecture: amd64
+Depends: linux-image-4.9.0-14-2-amd64
+Description: kernel modules for platform devices such as syseeprom, sfp
+
