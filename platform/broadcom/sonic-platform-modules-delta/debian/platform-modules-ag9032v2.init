@@ -11,6 +11,26 @@
 # Short-Description: Setup ag9032v2a board.
 ### END INIT INFO
 
+install_python_api_package() {
+    device="/usr/share/sonic/device"
+    platform=$(/usr/local/bin/sonic-cfggen -H -v DEVICE_METADATA.localhost.platform)
+
+    rv=$(pip install $device/$platform/sonic_platform-1.0-py2-none-any.whl)
+    rv=$(pip3 install $device/$platform/sonic_platform-1.0-py3-none-any.whl)
+}
+
+remove_python_api_package() {
+    rv=$(pip show sonic-platform > /dev/null 2>/dev/null)
+    if [ $? -eq 0 ]; then
+        rv=$(pip uninstall -y sonic-platform > /dev/null 2>/dev/null)
+    fi
+
+    rv=$(pip3 show sonic-platform > /dev/null 2>/dev/null)
+    if [ $? -eq 0 ]; then
+        rv=$(pip3 uninstall -y sonic-platform > /dev/null 2>/dev/null)
+    fi
+}
+
 case "$1" in
 start)
     echo -n "Setting up board... "
@@ -25,11 +45,13 @@ start)
     modprobe optoe
     modprobe delta_ag9032v2_platform
     /usr/local/bin/ag9032v2_platform_init.sh
+    install_python_api_package
 
     echo "done."
     ;;
 
 stop)
+    remove_python_api_package
     echo "done."
 
     ;;
