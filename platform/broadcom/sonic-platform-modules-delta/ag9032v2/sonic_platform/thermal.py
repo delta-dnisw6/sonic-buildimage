@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ########################################################################
-# DellEMC S5248F
+# DellEMC S6100
 #
 # Module contains an implementation of SONiC Platform Base API and
 # provides the Thermals' information which are available in the platform
@@ -10,6 +10,7 @@
 
 
 try:
+    import os
     from sonic_platform_base.thermal_base import ThermalBase
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
@@ -18,14 +19,9 @@ except ImportError as e:
 class Thermal(ThermalBase):
     """DellEMC Platform-specific Thermal class"""
 
-    # [ Sensor-Name, Sensor-ID ]
-    SENSOR_MAPPING = [
-        ['CPU On-board', 0xe],
-        ['ASIC On-board', 0x2],
-        ['System Front Left', 0x3],
-        ['System Front Middle', 0x1],
-        ['System Front Right', 0x4],
-    ]
+    THERMAL_NAME = (
+        'CPU On-board', 'ASIC On-board Front', 'System Front',
+        'ASIC On-board Rear', 'Front GE board')
 
     def __init__(self, thermal_index):
         ThermalBase.__init__(self)
@@ -38,7 +34,7 @@ class Thermal(ThermalBase):
         Returns:
             string: The name of the thermal
         """
-        return self.SENSOR_MAPPING[self.index - 1][0]
+        return self.THERMAL_NAME[self.index - 1]
 
     def get_presence(self):
         """
@@ -75,7 +71,26 @@ class Thermal(ThermalBase):
             A boolean value, True if thermal is operating properly,
             False if not
         """
-        return True
+        status = True
+
+        return status
+
+    def get_position_in_parent(self):
+        """
+        Retrieves 1-based relative physical position in parent device.
+        Returns:
+            integer: The 1-based relative physical position in parent
+            device or -1 if cannot determine the position
+        """
+        return self.index
+
+    def is_replaceable(self):
+        """
+        Indicate whether this Thermal is replaceable.
+        Returns:
+            bool: True if it is replaceable.
+        """
+        return False
 
     def get_temperature(self):
         """
@@ -85,12 +100,9 @@ class Thermal(ThermalBase):
             A float number of current temperature in Celsius up to
             nearest thousandth of one degree Celsius, e.g. 30.125
         """
-        is_valid, temperature = self.sensor.get_reading()
-        if not is_valid:
-            temperature = 0
+        thermal_temperature = 30
 
-        #return "{:.3f}".format(temperature)
-        return float(temperature)
+        return thermal_temperature / 1000.0
 
     def get_high_threshold(self):
         """
@@ -101,28 +113,9 @@ class Thermal(ThermalBase):
             Celsius up to nearest thousandth of one degree Celsius,
             e.g. 30.125
         """
-        is_valid, high_threshold = self.sensor.get_threshold("UpperNonCritical")
-        if not is_valid:
-            return super(Thermal, self).get_high_threshold()
+        thermal_high_threshold = 40
 
-        #return "{:.3f}".format(high_threshold)
-        return float(high_threshold)
-
-    def get_high_critical_threshold(self):
-        """
-        Retrieves the high critical threshold temperature of thermal
-
-        Returns:
-            A float number, the high critical threshold temperature of thermal in
-            Celsius up to nearest thousandth of one degree Celsius,
-            e.g. 30.125
-        """
-        is_valid, high_crit_threshold = self.sensor.get_threshold("UpperCritical")
-        if not is_valid:
-            return super(Thermal, self).get_high_critical_threshold()
-
-        #return "{:.3f}".format(high_crit_threshold)
-        return float(high_crit_threshold)
+        return thermal_high_threshold / 1000.0
 
     def get_low_threshold(self):
         """
@@ -133,12 +126,22 @@ class Thermal(ThermalBase):
             Celsius up to nearest thousandth of one degree Celsius,
             e.g. 30.125
         """
-        is_valid, low_threshold = self.sensor.get_threshold("LowerNonRecoverable")
-        if not is_valid:
-            low_threshold = 0
+        thermal_low_threshold = 20
 
-        #return "{:.3f}".format(low_threshold)
-        return float(low_threshold)
+        return thermal_low_threshold / 1000.0
+
+    def get_high_critical_threshold(self):
+        """
+        Retrieves the high critical threshold temperature of thermal
+
+        Returns:
+            A float number, the high critical threshold temperature of
+            thermal in Celsius up to nearest thousandth of one degree
+            Celsius, e.g. 30.125
+        """
+        thermal_high_crit_threshold = 35
+
+        return thermal_high_crit_threshold / 1000.0
 
     def set_high_threshold(self, temperature):
         """

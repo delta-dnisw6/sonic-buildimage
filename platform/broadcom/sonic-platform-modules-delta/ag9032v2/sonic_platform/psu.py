@@ -10,27 +10,20 @@ try:
 except ImportError as e:
     raise ImportError (str(e) + "- required module not found")
 
-
 class Psu(PsuBase):
 
     def __init__(self, index):
         PsuBase.__init__(self)
         self.index = index + 1
 
-#        self._fan_list.append(Fan(fan_index=self.index, psu_fan=True,
-#            dependency=self))
+        # Passing True to specify it is a PSU fan
+        self._fan_list.append(Fan(fan_index=self.index, psu_fan=True,
+                              dependency=self))
+        print(self._fan_list)
 
 ##############################################
 # Device methods
 ##############################################
-    def get_num_psus(self):
-        """
-        Retrieves the number of PSUs available on the device
-        :return: An integer, the number of PSUs available on the device
-        """
-        AG9032V2_MAX_PSUS = 2
-        return AG9032V2_MAX_PSUS
-
     def get_name(self):
         """
         Retrieves the name of the device

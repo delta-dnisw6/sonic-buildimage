@@ -8,16 +8,14 @@
 try:
     import os
     from sonic_platform_base.chassis_base import ChassisBase
-    #from sonic_platform.eeprom import Eeprom
-    from sonic_platform.fan import Fan
-    from sonic_platform.psu import Psu
     from sonic_platform.fan_drawer import FanDrawer
+    from sonic_platform.psu import Psu
+    from sonic_platform.fan import Fan
     from sonic_platform.thermal import Thermal
-    #from sonic_platform.sfp import Sfp
-    import time
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
+MAX_AG9032V2_MODULE = 5
 MAX_AG9032V2_PSU = 2
 MAX_AG9032V2_FANTRAY = 5
 MAX_AG9032V2_FAN = 1
@@ -28,25 +26,30 @@ class Chassis(ChassisBase):
     def __init__(self):
         ChassisBase.__init__(self)
 
-        # Initialize PSU
-        self._psu_list = [Psu(i) for i in range(MAX_AG9032V2_PSU)]
-
-#        self._thermal_list = [Thermal(i) for i in range(MAX_AG9032V2_THERMAL)]
-
-        # Initialize FAN
-#        self._num_fans = MAX_AG9032V2_FANTRAY * MAX_AG9032V2_FAN
-#        self._fan_list = [Fan(i, j) for i in range(MAX_AG9032V2_FANTRAY) \
-#                            for j in range(MAX_AG9032V2_FAN)]
-
- #       for i in range(MAX_AG9032V2_FANTRAY):
- #           fandrawer = FanDrawer(i)
- #           self._fan_drawer_list.append(fandrawer)
-#            self._fan_list.extend(fandrawer._fan_list)
 #        for i in range(MAX_AG9032V2_FANTRAY):
 #            fandrawer = FanDrawer(i)
 #            self._fan_drawer_list.append(fandrawer)
 #            self._fan_list.extend(fandrawer._fan_list)
+        # Initialize FAN
+        for index in range(0, MAX_AG9032V2_FANTRAY):
+            fandrawer = FanDrawer(index)
+            self._fan_drawer_list.append(fandrawer)
+            self._fan_list.extend(fandrawer._fan_list)
+        self._num_fans=MAX_AG9032V2_FANTRAY * MAX_AG9032V2_FAN
 
+
+        print(len(self._fan_list))
+        print(len(self._fan_drawer_list))
+        print(self._num_fans) 
+
+        # Initialize PSU
+        for i in range(MAX_AG9032V2_PSU):
+            psu = Psu(i)
+            self._psu_list.append(psu)
+
+        for i in range(MAX_AG9032V2_THERMAL):
+            thermal = Thermal(i)
+            self._thermal_list.append(thermal)
 
     def get_presence(self):
         """
@@ -66,10 +69,5 @@ class Chassis(ChassisBase):
         return True
 
     def get_num_fans(self):
-        """
-        Retrives the number of Fans on the chassis.
-        Returns :
-            An integer represents the number of Fans on the chassis.
-        """
-        return self._num_fans 
+        return self._num_fans
 
