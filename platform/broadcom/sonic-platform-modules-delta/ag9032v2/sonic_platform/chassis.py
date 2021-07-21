@@ -37,11 +37,6 @@ class Chassis(ChassisBase):
             self._fan_list.extend(fandrawer._fan_list)
         self._num_fans=MAX_AG9032V2_FANTRAY * MAX_AG9032V2_FAN
 
-
-        print(len(self._fan_list))
-        print(len(self._fan_drawer_list))
-        print(self._num_fans) 
-
         # Initialize PSU
         for i in range(MAX_AG9032V2_PSU):
             psu = Psu(i)

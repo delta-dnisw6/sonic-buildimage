@@ -10,7 +10,8 @@
 
 
 try:
-    import os
+    import os.path
+    import re
     from sonic_platform_base.thermal_base import ThermalBase
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
@@ -20,8 +21,14 @@ class Thermal(ThermalBase):
     """DellEMC Platform-specific Thermal class"""
 
     THERMAL_NAME = (
-        'CPU On-board', 'ASIC On-board Front', 'System Front',
-        'ASIC On-board Rear', 'Front GE board')
+        'Sensor_Temp_1', 'Sensor_Temp_2', 'Sensor_Temp_3',
+        'Sensor_Temp_4', 'Sensor_Temp_5')
+    THERMAL_THRESHOLD_MAPPING = { 
+        1: {"low_threshold": 45, "critical_threshold": 55, "high_threshold": 60},
+        2: {"low_threshold": 50, "critical_threshold": 60, "high_threshold": 65},
+        3: {"low_threshold": 65, "critical_threshold": 75, "high_threshold": 80},
+        4: {"low_threshold": 60, "critical_threshold": 70, "high_threshold": 75},
+        5: {"low_threshold": 50, "critical_threshold": 60, "high_threshold": 65}}
 
     def __init__(self, thermal_index):
         ThermalBase.__init__(self)
@@ -72,7 +79,6 @@ class Thermal(ThermalBase):
             False if not
         """
         status = True
-
         return status
 
     def get_position_in_parent(self):
@@ -100,9 +106,18 @@ class Thermal(ThermalBase):
             A float number of current temperature in Celsius up to
             nearest thousandth of one degree Celsius, e.g. 30.125
         """
-        thermal_temperature = 30
-
-        return thermal_temperature / 1000.0
+        try:
+            command = ("ipmitool sdr get Sensor_Temp_{}").format(self.index)
+            p = os.popen(command)
+            content = p.read().rstrip()
+            info_req = re.search(r"%s\s*:(.*)" %  "Sensor Reading", content)
+            if not info_req:
+                return "NA"
+            temp = info_req.group(1).split(' ')[1]
+            p.close()
+        except IOError:
+            raise SyntaxError
+        return float(temp)
 
     def get_high_threshold(self):
         """
@@ -113,9 +128,8 @@ class Thermal(ThermalBase):
             Celsius up to nearest thousandth of one degree Celsius,
             e.g. 30.125
         """
-        thermal_high_threshold = 40
-
-        return thermal_high_threshold / 1000.0
+        thermal_high_threshold = self.THERMAL_THRESHOLD_MAPPING[self.index]["high_threshold"]
+        return thermal_high_threshold / 1.0
 
     def get_low_threshold(self):
         """
@@ -126,9 +140,8 @@ class Thermal(ThermalBase):
             Celsius up to nearest thousandth of one degree Celsius,
             e.g. 30.125
         """
-        thermal_low_threshold = 20
-
-        return thermal_low_threshold / 1000.0
+        thermal_low_threshold = self.THERMAL_THRESHOLD_MAPPING[self.index]["low_threshold"]
+        return thermal_low_threshold / 1.0
 
     def get_high_critical_threshold(self):
         """
@@ -139,9 +152,8 @@ class Thermal(ThermalBase):
             thermal in Celsius up to nearest thousandth of one degree
             Celsius, e.g. 30.125
         """
-        thermal_high_crit_threshold = 35
-
-        return thermal_high_crit_threshold / 1000.0
+        thermal_high_crit_threshold = self.THERMAL_THRESHOLD_MAPPING[self.index]["critical_threshold"]
+        return thermal_high_crit_threshold / 1.0
 
     def set_high_threshold(self, temperature):
         """
@@ -154,7 +166,6 @@ class Thermal(ThermalBase):
             A boolean, True if threshold is set successfully, False if
             not
         """
-        # Thermal threshold values are pre-defined based on HW.
         return False
 
     def set_low_threshold(self, temperature):
@@ -168,5 +179,4 @@ class Thermal(ThermalBase):
             A boolean, True if threshold is set successfully, False if
             not
         """
-        # Thermal threshold values are pre-defined based on HW.
         return False

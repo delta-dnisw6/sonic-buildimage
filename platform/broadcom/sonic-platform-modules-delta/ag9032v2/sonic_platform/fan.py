@@ -1,23 +1,19 @@
 #!/usr/bin/env python
 
 ########################################################################
-# DellEMC S6100
+# Delta AG9032V2
 #
 # Module contains an implementation of SONiC Platform Base API and
 # provides the Fans' information which are available in the platform.
 #
 ########################################################################
 
-import os.path
-
 try:
+    import os.path
+    import re
     from sonic_platform_base.fan_base import FanBase
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
-
-MAX_S6100_PSU_FAN_SPEED = 18000
-MAX_S6100_FAN_SPEED = 16000
-
 
 class Fan(FanBase):
     """DellEMC Platform-specific Fan class"""
@@ -28,11 +24,8 @@ class Fan(FanBase):
         if not self.is_psu_fan:
             self.fantrayindex = fantray_index + 1
             self.fanindex = fan_index + 1
-            self.dependency = dependency
-            self.max_fan_speed = MAX_S6100_FAN_SPEED
         else:
             self.fanindex = fan_index
-            self.max_fan_speed = MAX_S6100_PSU_FAN_SPEED
 
     def get_name(self):
         """
@@ -73,8 +66,29 @@ class Fan(FanBase):
         Returns:
             bool: True if fan is present, False if not
         """
-        presence = True
-
+        presence = False
+        if self.is_psu_fan:
+            p = os.popen("ipmitool raw 0x38 0x2 3 0x6a 0x3 1")
+            content = p.readline().rstrip()
+            reg_value = int(content)
+            if self.fanindex == 1:
+                mask = (1 << 7)
+                if reg_value & mask == 0x80:
+                   presence = False
+            else:
+                mask = (1 << 3)
+                if reg_value & mask == 0x08:
+                   presence = False
+            p.close()
+        else:
+            command = ("ipmitool raw 0x38 0x0e")
+            p = os.popen(command)
+            content = p.readline().rstrip()
+            reg_value = int(content, 16)
+            mask = (16 >> self.fantrayindex - 1)
+            if reg_value & mask == 0:
+                presence = True
+            p.close()
         return presence
 
     def get_status(self):
@@ -83,7 +97,6 @@ class Fan(FanBase):
         Returns:
             bool: True if FAN is operating properly, False if not
         """
-
         return self.get_presence()
 
     def get_direction(self):
@@ -106,9 +119,21 @@ class Fan(FanBase):
         Returns:
             int: percentage of the max fan speed
         """
-        fan_speed = 1000
-        return fan_speed
-
+        try:
+            if self.is_psu_fan:
+                command = ("ipmitool sdr get PSU{}_Fan").format(self.fanindex)
+            else:
+                command = ("ipmitool sdr get Fantray_{}_[]").format(self.fantrayindex, self.fanindex)
+            p = os.popen(command)
+            content = p.read().rstrip()
+            info_req = re.search(r"%s\s*:(.*)" %  "Sensor Reading", content)
+            if not info_req:
+                return "NA"
+            fan_speed = info_req.group(1).split(' ')[1]
+            p.close()
+        except IOError:
+            raise SyntaxError
+        return int(fan_speed)
 
     def get_target_speed(self):
         """
@@ -118,7 +143,6 @@ class Fan(FanBase):
         An integer, the percentage of full fan speed, in the range 0 (off)
         to 100 (full speed)
         """
-        fan_speed = 50
         return None
 
     def get_speed_tolerance(self):
@@ -129,7 +153,6 @@ class Fan(FanBase):
         An integer, the percentage of variance from target speed which is
         considered tolerable
         """
-        fan_speed = 0
         return None
 
     def set_status_led(self, color):
