@@ -19,7 +19,6 @@ class Psu(PsuBase):
         # Passing True to specify it is a PSU fan
         self._fan_list.append(Fan(fan_index=self.index, psu_fan=True,
                               dependency=self))
-        print(self._fan_list)
 
 ##############################################
 # Device methods

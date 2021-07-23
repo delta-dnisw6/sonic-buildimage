@@ -1,6 +1,6 @@
 {
     "skip_thermalctld": false,
-    "skip_syseepromd": true,
+    "skip_syseepromd": false,
     "skip_fancontrol": false,
     "skip_ledd": true,
     "skip_psud": false,
