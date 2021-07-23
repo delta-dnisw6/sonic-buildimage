@@ -2,10 +2,11 @@
 
 SONIC_ONE_IMAGE = sonic-broadcom.bin
 $(SONIC_ONE_IMAGE)_MACHINE = broadcom
+$(SONIC_ONE_IMAGE)_DEPENDENT_MACHINE = broadcom-dnx
 $(SONIC_ONE_IMAGE)_IMAGE_TYPE = onie
-$(SONIC_ONE_IMAGE)_INSTALLS += $(BRCM_OPENNSL_KERNEL)
 $(SONIC_ONE_IMAGE)_INSTALLS += $(PDDF_PLATFORM_MODULE)
 $(SONIC_ONE_IMAGE)_INSTALLS += $(SYSTEMD_SONIC_GENERATOR)
+$(SONIC_ONE_IMAGE)_INSTALLS += $(FLASHROM)
 $(SONIC_ONE_IMAGE)_LAZY_INSTALLS += $(DELL_S6000_PLATFORM_MODULE) \
                                $(DELL_Z9264F_PLATFORM_MODULE) \
                                $(DELL_S5232F_PLATFORM_MODULE) \
@@ -53,7 +54,9 @@ $(SONIC_ONE_IMAGE)_LAZY_INSTALLS += $(DELL_S6000_PLATFORM_MODULE) \
                                $(DELTA_ET6248BRB_PLATFORM_MODULE) \
                                $(QUANTA_IX1B_32X_PLATFORM_MODULE) \
                                $(QUANTA_IX7_32X_PLATFORM_MODULE) \
+                               $(QUANTA_IX7_BWDE_32X_PLATFORM_MODULE) \
                                $(QUANTA_IX8_56X_PLATFORM_MODULE) \
+                               $(QUANTA_IX8A_BWDE_56X_PLATFORM_MODULE) \
                                $(QUANTA_IX8C_56X_PLATFORM_MODULE) \
                                $(QUANTA_IX9_32X_PLATFORM_MODULE) \
                                $(MITAC_LY1200_32X_PLATFORM_MODULE) \
@@ -67,7 +70,9 @@ $(SONIC_ONE_IMAGE)_LAZY_INSTALLS += $(DELL_S6000_PLATFORM_MODULE) \
                                $(DELTA_AGC032_PLATFORM_MODULE) \
                                $(RUIJIE_B6510_48VS8CQ_PLATFORM_MODULE) \
                                $(RAGILE_RA_B6510_48V8C_PLATFORM_MODULE) \
-                               $(DELTA_AG9032V2_PLATFORM_MODULE) 
+                               $(RAGILE_RA_B6510_48V8C_PLATFORM_MODULE) \
+                               $(DELTA_AG9032V2_PLATFORM_MODULE)
+$(SONIC_ONE_IMAGE)_LAZY_BUILD_INSTALLS = $(BRCM_OPENNSL_KERNEL) $(BRCM_DNX_OPENNSL_KERNEL)
 ifeq ($(INSTALL_DEBUG_TOOLS),y)
 $(SONIC_ONE_IMAGE)_DOCKERS += $(SONIC_INSTALL_DOCKER_DBG_IMAGES)
 $(SONIC_ONE_IMAGE)_DOCKERS += $(filter-out $(patsubst %-$(DBG_IMAGE_MARK).gz,%.gz, $(SONIC_INSTALL_DOCKER_DBG_IMAGES)), $(SONIC_INSTALL_DOCKER_IMAGES))

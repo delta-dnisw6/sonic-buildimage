@@ -39,6 +39,8 @@ STRETCH_DEBS_PATH = $(TARGET_PATH)/debs/stretch
 STRETCH_FILES_PATH = $(TARGET_PATH)/files/stretch
 BUSTER_DEBS_PATH = $(TARGET_PATH)/debs/buster
 BUSTER_FILES_PATH = $(TARGET_PATH)/files/buster
+BULLSEYE_DEBS_PATH = $(TARGET_PATH)/debs/bullseye
+BULLSEYE_FILES_PATH = $(TARGET_PATH)/files/bullseye
 DBG_IMAGE_MARK = dbg
 DBG_SRC_ARCHIVE_FILE = $(TARGET_PATH)/sonic_src.tar.gz
 DPKG_ADMINDIR_PATH = /sonic/dpkg
@@ -49,7 +51,11 @@ CONFIGURED_ARCH := $(shell [ -f .arch ] && cat .arch || echo amd64)
 ifeq ($(PLATFORM_ARCH),)
 	override PLATFORM_ARCH = $(CONFIGURED_ARCH)
 endif
+ifeq ($(BLDENV),bullseye)
+IMAGE_DISTRO := bullseye
+else
 IMAGE_DISTRO := buster
+endif
 IMAGE_DISTRO_DEBS_PATH = $(TARGET_PATH)/debs/$(IMAGE_DISTRO)
 IMAGE_DISTRO_FILES_PATH = $(TARGET_PATH)/files/$(IMAGE_DISTRO)
 
@@ -79,10 +85,12 @@ configure :
 	@mkdir -p $(JESSIE_DEBS_PATH)
 	@mkdir -p $(STRETCH_DEBS_PATH)
 	@mkdir -p $(BUSTER_DEBS_PATH)
+	@mkdir -p $(BULLSEYE_DEBS_PATH)
 	@mkdir -p $(FILES_PATH)
 	@mkdir -p $(JESSIE_FILES_PATH)
 	@mkdir -p $(STRETCH_FILES_PATH)
 	@mkdir -p $(BUSTER_FILES_PATH)
+	@mkdir -p $(BULLSEYE_FILES_PATH)
 	@mkdir -p $(PYTHON_DEBS_PATH)
 	@mkdir -p $(PYTHON_WHEELS_PATH)
 	@mkdir -p $(DPKG_ADMINDIR_PATH)
@@ -256,11 +264,13 @@ $(info "ENABLE_HOST_SERVICE_ON_START"    : "$(ENABLE_HOST_SERVICE_ON_START)")
 $(info "INCLUDE_RESTAPI"                 : "$(INCLUDE_RESTAPI)")
 $(info "INCLUDE_SFLOW"                   : "$(INCLUDE_SFLOW)")
 $(info "INCLUDE_NAT"                     : "$(INCLUDE_NAT)")
+$(info "INCLUDE_DHCP_RELAY"              : "$(INCLUDE_DHCP_RELAY)")
 $(info "INCLUDE_KUBERNETES"              : "$(INCLUDE_KUBERNETES)")
 $(info "INCLUDE_MACSEC"                  : "$(INCLUDE_MACSEC)")
 $(info "TELEMETRY_WRITABLE"              : "$(TELEMETRY_WRITABLE)")
 $(info "PDDF_SUPPORT"                    : "$(PDDF_SUPPORT)")
 $(info "MULTIARCH_QEMU_ENVIRON"          : "$(MULTIARCH_QEMU_ENVIRON)")
+$(info "SONIC_VERSION_CONTROL_COMPONENTS": "$(SONIC_VERSION_CONTROL_COMPONENTS)")
 $(info )
 else
 $(info SONiC Build System for $(CONFIGURED_PLATFORM):$(CONFIGURED_ARCH))
@@ -717,10 +727,13 @@ $(foreach IMAGE,$(DOCKER_DBG_IMAGES), $(eval $(IMAGE)_FILES_PATH := $(FILES_PATH
 # Targets for building docker images
 $(addprefix $(TARGET_PATH)/, $(DOCKER_IMAGES)) : $(TARGET_PATH)/%.gz : .platform docker-start \
 		$$(addprefix $$($$*.gz_DEBS_PATH)/,$$($$*.gz_DEPENDS)) \
+		$$(addprefix $(TARGET_PATH)/,$$($$*.gz_AFTER)) \
 		$$(addprefix $$($$*.gz_FILES_PATH)/,$$($$*.gz_FILES)) \
 		$$(addprefix $(PYTHON_DEBS_PATH)/,$$($$*.gz_PYTHON_DEBS)) \
 		$$(addprefix $(PYTHON_WHEELS_PATH)/,$$($$*.gz_PYTHON_WHEELS)) \
 		$$(addsuffix -load,$$(addprefix $(TARGET_PATH)/,$$($$*.gz_LOAD_DOCKERS))) \
+		$$(addsuffix -install,$$(addprefix $(PYTHON_WHEELS_PATH)/,$$($$*.gz_INSTALL_PYTHON_WHEELS))) \
+		$$(addsuffix -install,$$(addprefix $(DEBS_PATH)/,$$($$*.gz_INSTALL_DEBS))) \
 		$$($$*.gz_PATH)/Dockerfile.j2 \
 		$(call dpkg_depend,$(TARGET_PATH)/%.gz.dep)
 	$(HEADER)
@@ -747,6 +760,7 @@ $(addprefix $(TARGET_PATH)/, $(DOCKER_IMAGES)) : $(TARGET_PATH)/%.gz : .platform
 		$(eval export $(subst -,_,$(notdir $($*.gz_PATH)))_whls=$(shell printf "$(subst $(SPACE),\n,$(call expand,$($*.gz_PYTHON_WHEELS)))\n" | awk '!a[$$0]++'))
 		$(eval export $(subst -,_,$(notdir $($*.gz_PATH)))_dbgs=$(shell printf "$(subst $(SPACE),\n,$(call expand,$($*.gz_DBG_PACKAGES)))\n" | awk '!a[$$0]++'))
 		$(eval export $(subst -,_,$(notdir $($*.gz_PATH)))_pkgs=$(shell printf "$(subst $(SPACE),\n,$(call expand,$($*.gz_APT_PACKAGES)))\n" | awk '!a[$$0]++'))
+		if [ -d $($*.gz_PATH)/cli-plugin-tests/ ]; then pushd $($*.gz_PATH)/cli-plugin-tests; pytest-$($(SONIC_UTILITIES_PY3)_PYTHON_VERSION) -v $(LOG); popd; fi
 		# Label docker image with componenets versions
 		$(eval export $(subst -,_,$(notdir $($*.gz_PATH)))_labels=$(foreach component,$($*.gz_DEPENDS) $($*.gz_PYTHON_DEBS) $($*.gz_PYTHON_WHEELS),\
 			$(shell [[ ! -z "$($(component)_VERSION)" && ! -z "$($(component)_NAME)" ]] && \
@@ -789,6 +803,7 @@ SONIC_TARGET_LIST += $(addprefix $(TARGET_PATH)/, $(DOCKER_IMAGES))
 
 # Targets for building docker images
 $(addprefix $(TARGET_PATH)/, $(DOCKER_DBG_IMAGES)) : $(TARGET_PATH)/%-$(DBG_IMAGE_MARK).gz : .platform docker-start \
+		$$(addprefix $(TARGET_PATH)/,$$($$*.gz_AFTER)) \
 		$$(addprefix $$($$*.gz_DEBS_PATH)/,$$($$*.gz_DBG_DEPENDS)) \
 		$$(addsuffix -load,$$(addprefix $(TARGET_PATH)/,$$*.gz)) \
 		$(call dpkg_depend,$(TARGET_PATH)/%-$(DBG_IMAGE_MARK).gz.dep)
@@ -862,6 +877,7 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
         $$(addsuffix -install,$$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$$($$*_DEPENDS))) \
         $$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$$($$*_INSTALLS)) \
         $$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$$($$*_LAZY_INSTALLS)) \
+        $$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$$($$*_LAZY_BUILD_INSTALLS)) \
         $(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$(INITRAMFS_TOOLS) \
                 $(LINUX_KERNEL) \
                 $(SONIC_DEVICE_DATA) \
@@ -879,6 +895,7 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
                 $(SONIC_UTILITIES_DATA) \
                 $(SONIC_HOST_SERVICES_DATA)) \
         $$(addprefix $(TARGET_PATH)/,$$($$*_DOCKERS)) \
+        $$(addprefix $(TARGET_PATH)/,$$(SONIC_PACKAGES_LOCAL)) \
         $$(addprefix $(FILES_PATH)/,$$($$*_FILES)) \
         $(if $(findstring y,$(ENABLE_ZTP)),$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$(SONIC_ZTP))) \
         $(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_UTILITIES_PY3)) \
@@ -924,13 +941,25 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
 	export shutdown_bgp_on_start="$(SHUTDOWN_BGP_ON_START)"
 	export default_buffer_model="$(SONIC_BUFFER_MODEL)"
 	export include_kubernetes="$(INCLUDE_KUBERNETES)"
+	export kube_docker_proxy="$(KUBE_DOCKER_PROXY)"
 	export enable_pfcwd_on_start="$(ENABLE_PFCWD_ON_START)"
 	export installer_debs="$(addprefix $(IMAGE_DISTRO_DEBS_PATH)/,$($*_INSTALLS))"
 	export lazy_installer_debs="$(foreach deb, $($*_LAZY_INSTALLS),$(foreach device, $($(deb)_PLATFORM),$(addprefix $(device)@, $(IMAGE_DISTRO_DEBS_PATH)/$(deb))))"
+	export lazy_build_installer_debs="$(foreach deb, $($*_LAZY_BUILD_INSTALLS), $(addprefix $($(deb)_MACHINE)|,$(deb)))"
 	export installer_images="$(foreach docker, $($*_DOCKERS),\
 				$(addprefix $($(docker)_PACKAGE_NAME)|,\
-					$(addprefix $($(docker)_PATH)|,\
-						$(addprefix $(TARGET_PATH)/,$(addsuffix :$($(docker)_VERSION),$(docker))))))"
+				$(addprefix $($(docker)_PATH)|,\
+				$(addprefix $($(docker)_MACHINE)|,\
+				$(addprefix $(TARGET_PATH)/,$(addsuffix :$($(docker)_VERSION),$(docker)))))))"
+	export sonic_packages="$(foreach package, $(SONIC_PACKAGES),\
+				$(addsuffix |$($(package)_DEFAULT_FEATURE_STATE_ENABLED),\
+				$(addsuffix |$($(package)_DEFAULT_FEATURE_OWNER),\
+				$(addsuffix |$($(package)_VERSION),\
+				$(addsuffix |$($(package)_REPOSITORY), $(package))))))"
+	export sonic_local_packages="$(foreach package, $(SONIC_PACKAGES_LOCAL),\
+				$(addsuffix |$($(package)_DEFAULT_FEATURE_STATE_ENABLED),\
+				$(addsuffix |$($(package)_DEFAULT_FEATURE_OWNER),\
+				$(addsuffix |$(addprefix $(TARGET_PATH)/, $(package)), $(package)))))"
 	export sonic_py_common_py2_wheel_path="$(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_PY_COMMON_PY2))"
 	export sonic_py_common_py3_wheel_path="$(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_PY_COMMON_PY3))"
 	export config_engine_py2_wheel_path="$(addprefix $(PYTHON_WHEELS_PATH)/,$(SONIC_CONFIG_ENGINE_PY2))"
@@ -990,7 +1019,12 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
 
 		j2 files/build_templates/docker_image_ctl.j2 > $($(docker:-dbg.gz=.gz)_CONTAINER_NAME).sh
 		chmod +x $($(docker:-dbg.gz=.gz)_CONTAINER_NAME).sh
+
+		$(if $($(docker:-dbg.gz=.gz)_MACHINE),\
+			mv $($(docker:-dbg.gz=.gz)_CONTAINER_NAME).sh $($(docker:-dbg.gz=.gz)_MACHINE)_$($(docker:-dbg.gz=.gz)_CONTAINER_NAME).sh
+		)
 	)
+
 
 	# Exported variables are used by sonic_debian_extension.sh
 	export installer_start_scripts="$(foreach docker, $($*_DOCKERS),$(addsuffix .sh, $($(docker:-dbg.gz=.gz)_CONTAINER_NAME)))"
@@ -1023,36 +1057,40 @@ $(addprefix $(TARGET_PATH)/, $(SONIC_INSTALLERS)) : $(TARGET_PATH)/% : \
 		chmod +x sonic_debian_extension.sh,
 	)
 
-	DEBUG_IMG="$(INSTALL_DEBUG_TOOLS)" \
-	DEBUG_SRC_ARCHIVE_DIRS="$(DBG_SRC_ARCHIVE)" \
-	DEBUG_SRC_ARCHIVE_FILE="$(DBG_SRC_ARCHIVE_FILE)" \
-		scripts/dbg_files.sh
+	# Build images for the MACHINE, DEPENDENT_MACHINE defined.
+	$(foreach dep_machine, $($*_MACHINE) $($*_DEPENDENT_MACHINE), \
+		DEBUG_IMG="$(INSTALL_DEBUG_TOOLS)" \
+		DEBUG_SRC_ARCHIVE_DIRS="$(DBG_SRC_ARCHIVE)" \
+		DEBUG_SRC_ARCHIVE_FILE="$(DBG_SRC_ARCHIVE_FILE)" \
+			scripts/dbg_files.sh
 
-	DEBUG_IMG="$(INSTALL_DEBUG_TOOLS)" \
-	DEBUG_SRC_ARCHIVE_FILE="$(DBG_SRC_ARCHIVE_FILE)" \
-	USERNAME="$(USERNAME)" \
-	PASSWORD="$(PASSWORD)" \
-	IMAGE_TYPE=$($*_IMAGE_TYPE) \
-	TARGET_PATH=$(TARGET_PATH) \
-	SONIC_ENFORCE_VERSIONS=$(SONIC_ENFORCE_VERSIONS) \
-	TRUSTED_GPG_URLS=$(TRUSTED_GPG_URLS) \
-	PACKAGE_URL_PREFIX=$(PACKAGE_URL_PREFIX) \
-	MULTIARCH_QEMU_ENVIRON=$(MULTIARCH_QEMU_ENVIRON) \
-		./build_debian.sh $(LOG)
+		DEBUG_IMG="$(INSTALL_DEBUG_TOOLS)" \
+		DEBUG_SRC_ARCHIVE_FILE="$(DBG_SRC_ARCHIVE_FILE)" \
+		USERNAME="$(USERNAME)" \
+		PASSWORD="$(PASSWORD)" \
+		TARGET_MACHINE=$(dep_machine) \
+		IMAGE_TYPE=$($*_IMAGE_TYPE) \
+		TARGET_PATH=$(TARGET_PATH) \
+		SONIC_ENFORCE_VERSIONS=$(SONIC_ENFORCE_VERSIONS) \
+		TRUSTED_GPG_URLS=$(TRUSTED_GPG_URLS) \
+		PACKAGE_URL_PREFIX=$(PACKAGE_URL_PREFIX) \
+		MULTIARCH_QEMU_ENVIRON=$(MULTIARCH_QEMU_ENVIRON) \
+			./build_debian.sh $(LOG)
 
-	USERNAME="$(USERNAME)" \
-	PASSWORD="$(PASSWORD)" \
-	TARGET_MACHINE=$($*_MACHINE) \
-	IMAGE_TYPE=$($*_IMAGE_TYPE) \
-	SONIC_ENABLE_IMAGE_SIGNATURE="$(SONIC_ENABLE_IMAGE_SIGNATURE)" \
-	SIGNING_KEY="$(SIGNING_KEY)" \
-	SIGNING_CERT="$(SIGNING_CERT)" \
-	CA_CERT="$(CA_CERT)" \
-	TARGET_PATH="$(TARGET_PATH)" \
-		./build_image.sh $(LOG)
+		USERNAME="$(USERNAME)" \
+		PASSWORD="$(PASSWORD)" \
+		TARGET_MACHINE=$(dep_machine) \
+		IMAGE_TYPE=$($*_IMAGE_TYPE) \
+		SONIC_ENABLE_IMAGE_SIGNATURE="$(SONIC_ENABLE_IMAGE_SIGNATURE)" \
+		SIGNING_KEY="$(SIGNING_KEY)" \
+		SIGNING_CERT="$(SIGNING_CERT)" \
+		CA_CERT="$(CA_CERT)" \
+		TARGET_PATH="$(TARGET_PATH)" \
+			./build_image.sh $(LOG)
+	)
 
 	$(foreach docker, $($*_DOCKERS), \
-		rm -f $($(docker:-dbg.gz=.gz)_CONTAINER_NAME).sh
+		rm -f *$($(docker:-dbg.gz=.gz)_CONTAINER_NAME).sh
 		rm -f $($(docker:-dbg.gz=.gz)_CONTAINER_NAME).service
 		rm -f $($(docker:-dbg.gz=.gz)_CONTAINER_NAME)@.service
 	)

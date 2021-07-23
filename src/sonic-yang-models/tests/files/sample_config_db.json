@@ -252,6 +252,49 @@
                 "port": "Eth18"
             }
         },
+        "MGMT_PORT": {
+            "eth0": {
+                "alias": "eth0",
+                "admin_status": "up",
+                "speed": "1000",
+                "autoneg": "off",
+                "description": "Management port",
+                "mtu": "3500"
+            }
+        },
+        "MGMT_INTERFACE": {
+            "eth0|10.11.150.11/16": {
+                "gwaddr": "10.11.0.1"
+            },
+            "eth0|fc00:2::32/64": {
+                "forced_mgmt_routes": [
+                    "10.3.145.14",
+                    "2001:aa:aa::aa",
+                    "10.0.0.100/31",
+                    "10.255.0.0/28"
+                ],
+                "gwaddr": "fc00:2::1"
+            }
+        },
+        "MGMT_VRF_CONFIG": {
+            "vrf_global": {
+                "mgmtVrfEnabled": "true"
+            }
+        },
+        "NTP": {
+            "global": {
+                "vrf": "mgmt",
+                "src_intf": [
+		    "eth0",
+		    "Loopback0"
+		]
+            }
+        },
+        "NTP_SERVER": {
+            "0.debian.pool.ntp.org": {},
+            "23.92.29.245": {},
+            "2001:aa:aa::aa": {}
+        },
         "PORT": {
             "Ethernet0": {
                 "alias": "Eth1/1",
@@ -587,6 +630,93 @@
                 ]
             }
         },
+        "PBH_HASH_FIELD": {
+            "inner_ip_proto": {
+                "hash_field": "INNER_IP_PROTOCOL",
+                "sequence_id": "1"
+            },
+            "inner_l4_dst_port": {
+                "hash_field": "INNER_L4_DST_PORT",
+                "sequence_id": "2"
+            },
+            "inner_l4_src_port": {
+                "hash_field": "INNER_L4_SRC_PORT",
+                "sequence_id": "2"
+            },
+            "inner_dst_ipv4": {
+                "hash_field": "INNER_DST_IPV4",
+                "ip_mask": "255.0.0.0",
+                "sequence_id": "3"
+            },
+            "inner_src_ipv4": {
+                "hash_field": "INNER_SRC_IPV4",
+                "ip_mask": "0.0.0.255",
+                "sequence_id": "3"
+            },
+            "inner_dst_ipv6": {
+                "hash_field": "INNER_DST_IPV6",
+                "ip_mask": "ffff::",
+                "sequence_id": "4"
+            },
+            "inner_src_ipv6": {
+                "hash_field": "INNER_SRC_IPV6",
+                "ip_mask": "::ffff",
+                "sequence_id": "4"
+            }
+        },
+        "PBH_HASH": {
+            "inner_v4_hash": {
+                "hash_field_list": [
+                    "inner_ip_proto",
+                    "inner_l4_dst_port",
+                    "inner_l4_src_port",
+                    "inner_dst_ipv4",
+                    "inner_src_ipv4"
+                ]
+            },
+            "inner_v6_hash": {
+                "hash_field_list": [
+                    "inner_ip_proto",
+                    "inner_l4_dst_port",
+                    "inner_l4_src_port",
+                    "inner_dst_ipv6",
+                    "inner_src_ipv6"
+                ]
+            }
+        },
+        "PBH_RULE": {
+            "pbh_table|nvgre": {
+                "priority": "1",
+                "ether_type": "0x0800",
+                "ip_protocol": "0x2f",
+                "gre_key": "0x2500/0xffffff00",
+                "inner_ether_type": "0x86dd",
+                "hash": "inner_v6_hash",
+                "packet_action": "SET_ECMP_HASH",
+                "flow_counter": "DISABLED"
+            },
+            "pbh_table|vxlan": {
+                "priority": "2",
+                "ether_type": "0x0800",
+                "ip_protocol": "0x11",
+                "l4_dst_port": "0x12b5",
+                "inner_ether_type": "0x0800",
+                "hash": "inner_v4_hash",
+                "packet_action": "SET_LAG_HASH",
+                "flow_counter": "ENABLED"
+            }
+        },
+        "PBH_TABLE": {
+            "pbh_table": {
+                "interface_list": [
+                    "Ethernet0",
+                    "Ethernet4",
+                    "PortChannel0003",
+                    "PortChannel0004"
+                ],
+                "description": "NVGRE and VxLAN"
+            }
+        },
         "INTERFACE": {
             "Ethernet112": {},
             "Ethernet14": {},
@@ -749,6 +879,23 @@
                 "polling_interval": "0"
             }
         },
+        "AAA": {
+            "authentication": {
+                "login": "local" 
+            }
+        },
+        "TACPLUS": {
+            "global": {
+                "auth_type": "pap",
+                "timeout": "5"
+            }
+        },
+        "TACPLUS_SERVER": {
+            "192.168.1.1": {
+                "timeout": "10"
+            }
+        },
+
         "NAT_BINDINGS": {
             "bind1": {
                 "nat_pool": "pool1",
@@ -780,6 +927,90 @@
             "125.56.90.8": {
                 "local_ip": "12.12.0.2"
             }
+        },
+        "BGP_GLOBALS": {
+            "default": {
+                "router_id": "5.5.5.5",
+                "local_asn": "65001"
+            }
+        },
+        "BGP_GLOBALS_AF": {
+            "default|ipv4_unicast": {
+                "max_ebgp_paths": "2",
+                "max_ibgp_paths": "2"
+            },
+            "default|ipv6_unicast": {
+                "max_ebgp_paths": "2",
+                "max_ibgp_paths": "2"
+            }
+        },
+        "BGP_GLOBALS_AF_AGGREGATE_ADDR": {
+            "default|ipv4_unicast|21.0.0.0/8": {
+            }
+        },
+        "BGP_GLOBALS_AF_NETWORK": {
+            "default|ipv4_unicast|21.0.0.0/8": {
+            }
+        },
+        "BGP_NEIGHBOR": {
+            "default|192.168.1.1": {
+            }
+        },
+        "BGP_NEIGHBOR_AF": {
+            "default|192.168.1.1|ipv4_unicast": {
+            }
+        },
+        "BGP_PEER_GROUP": {
+            "default|PG1": {
+            }
+        },
+        "BGP_PEER_GROUP_AF": {
+            "default|PG1|ipv4_unicast": {
+            }
+        },
+        "BGP_GLOBALS_LISTEN_PREFIX": {
+            "default|30.0.0.0/8": {
+                "peer_group": "PG1"
+            }
+        },
+        "ROUTE_MAP_SET": {
+            "map1": {
+            }
+        },
+        "ROUTE_MAP": {
+            "map1|1": {
+                "match_med" : "100"
+            }
+        },
+        "ROUTE_REDISTRIBUTE": {
+            "default|connected|bgp|ipv4": {
+            }
+        },
+        "PREFIX_SET": {
+            "prefix1": {
+            } 
+        },
+        "PREFIX": {
+            "prefix1|1|10.0.0.0/8|8..16": {
+            }
+        },
+        "COPP_GROUP": {
+            "queue1_group1": {
+                "queue": "1",
+                "trap_priority":"1",
+                "trap_action":"trap",
+                "meter_type":"packets",
+                "mode":"sr_tcm",
+                "cir":"6000",
+                "cbs":"6000",
+                "red_action":"drop"
+            }
+        },
+        "COPP_TRAP": {
+            "ip2me": {
+                "trap_ids": "ip2me",
+                "trap_group": "queue1_group1"
+            }
         }
     },
 
@@ -788,4 +1019,5 @@
             "Error": "This Table is for testing, This Table does not have YANG models."
         }
     }
+    
 }

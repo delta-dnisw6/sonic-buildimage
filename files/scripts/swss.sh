@@ -1,7 +1,16 @@
 #!/bin/bash
 
-DEPENDENT="radv dhcp_relay"
+DEPENDENT="radv"
 MULTI_INST_DEPENDENT="teamd"
+
+# Update dependent list based on other packages requirements
+if [[ -f /etc/sonic/${SERVICE}_dependent ]]; then
+    DEPENDENT="${DEPENDENT} $(cat /etc/sonic/${SERVICE}_dependent)"
+fi
+
+if [[ -f /etc/sonic/${SERVICE}_multi_inst_dependent ]]; then
+    MULTI_INST_DEPENDENT="${MULTI_INST_DEPENDENT} cat /etc/sonic/${SERVICE}_multi_inst_dependent"
+fi
 
 function debug()
 {

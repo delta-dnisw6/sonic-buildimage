@@ -27,7 +27,6 @@ setup(
         'Jinja2>=2.10',
         'PyGObject',
         'sonic-py-common',
-        'swsssdk>=2.0.1',
         'systemd-python',
     ],
     setup_requires = [
@@ -37,6 +36,7 @@ setup(
     tests_require = [
         'parameterized',
         'pytest',
+        'pyfakefs',
         'sonic-py-common'
     ],
     classifiers = [

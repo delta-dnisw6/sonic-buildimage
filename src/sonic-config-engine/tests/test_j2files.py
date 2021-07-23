@@ -17,6 +17,7 @@ class TestJ2Files(TestCase):
         self.t0_mvrf_minigraph = os.path.join(self.test_dir, 't0-sample-graph-mvrf.xml')
         self.pc_minigraph = os.path.join(self.test_dir, 'pc-test-graph.xml')
         self.t0_port_config = os.path.join(self.test_dir, 't0-sample-port-config.ini')
+        self.l1_l3_port_config = os.path.join(self.test_dir, 'l1-l3-sample-port-config.ini')
         self.t0_7050cx3_port_config = os.path.join(self.test_dir, 't0_7050cx3_d48c8_port_config.ini')
         self.t1_mlnx_minigraph = os.path.join(self.test_dir, 't1-sample-graph-mlnx.xml')
         self.mlnx_port_config = os.path.join(self.test_dir, 'sample-port-config-mlnx.ini')
@@ -93,21 +94,6 @@ class TestJ2Files(TestCase):
         self.run_script(argument)
         self.assertTrue(filecmp.cmp(expected_mgmt_ipv6, self.output_file))
 
-    def test_bgpd_quagga(self):
-        conf_template = os.path.join(self.test_dir, '..', '..', '..', 'dockers', 'docker-fpm-quagga', 'bgpd.conf.j2')
-        argument = '-m ' + self.t0_minigraph + ' -p ' + self.t0_port_config + ' -t ' + conf_template + ' > ' + self.output_file
-        self.run_script(argument)
-        original_filename = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'bgpd_quagga.conf')
-        r = filecmp.cmp(original_filename, self.output_file)
-        diff_output = self.run_diff(original_filename, self.output_file) if not r else ""
-        self.assertTrue(r, "Diff:\n" + diff_output)
-
-    def test_zebra_quagga(self):
-        conf_template = os.path.join(self.test_dir, '..', '..', '..', 'dockers', 'docker-fpm-quagga', 'zebra.conf.j2')
-        argument = '-m ' + self.t0_minigraph + ' -p ' + self.t0_port_config + ' -t ' + conf_template + ' > ' + self.output_file
-        self.run_script(argument)
-        self.assertTrue(filecmp.cmp(os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'zebra_quagga.conf'), self.output_file))
-
     def test_ipinip(self):
         ipinip_file = os.path.join(self.test_dir, '..', '..', '..', 'dockers', 'docker-orchagent', 'ipinip.json.j2')
         argument = '-m ' + self.t0_minigraph + ' -p ' + self.t0_port_config + ' -t ' + ipinip_file + ' > ' + self.output_file
@@ -129,6 +115,42 @@ class TestJ2Files(TestCase):
 
         template_dir = os.path.join(self.test_dir, '..', 'data', 'l2switch.j2')
         argument = '-t ' + template_dir + ' -k Mellanox-SN2700 -p ' + self.t0_port_config
+        output = self.run_script(argument)
+        output_json = json.loads(output)
+
+        self.assertTrue(json.dumps(sample_output_json, sort_keys=True) == json.dumps(output_json, sort_keys=True))
+    
+    def test_l1_ports_template(self):
+        argument = '-k 32x1000Gb --preset l1 -p ' + self.l1_l3_port_config
+        output = self.run_script(argument)
+        output_json = json.loads(output)
+
+        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'l1_intfs.json')
+        with open(sample_output_file) as sample_output_fd:
+            sample_output_json = json.load(sample_output_fd)
+
+        self.assertTrue(json.dumps(sample_output_json, sort_keys=True) == json.dumps(output_json, sort_keys=True))
+
+        template_dir = os.path.join(self.test_dir, '..', 'data', 'l1intf.j2')
+        argument = '-t ' + template_dir + ' -k 32x1000Gb -p ' + self.l1_l3_port_config
+        output = self.run_script(argument)
+        output_json = json.loads(output)
+
+        self.assertTrue(json.dumps(sample_output_json, sort_keys=True) == json.dumps(output_json, sort_keys=True))
+
+    def test_l3_ports_template(self):
+        argument = '-k 32x1000Gb --preset l3 -p ' + self.l1_l3_port_config
+        output = self.run_script(argument)
+        output_json = json.loads(output)
+
+        sample_output_file = os.path.join(self.test_dir, 'sample_output', utils.PYvX_DIR, 'l3_intfs.json')
+        with open(sample_output_file) as sample_output_fd:
+            sample_output_json = json.load(sample_output_fd)
+
+        self.assertTrue(json.dumps(sample_output_json, sort_keys=True) == json.dumps(output_json, sort_keys=True))
+
+        template_dir = os.path.join(self.test_dir, '..', 'data', 'l3intf.j2')
+        argument = '-t ' + template_dir + ' -k 32x1000Gb -p ' + self.l1_l3_port_config
         output = self.run_script(argument)
         output_json = json.loads(output)
 

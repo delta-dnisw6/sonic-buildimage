@@ -117,7 +117,8 @@ clean_flash() {
            [ $f != "old_config" ] &&
            [ $f != "minigraph.xml" ] &&
            [ $f != "snmp.yml" ] &&
-           [ $f != "acl.json" ]
+           [ $f != "acl.json" ] &&
+           [ $f != "port_config.json" ]
         then
             rm -rf "$target_path/$f"
         fi
@@ -586,6 +587,7 @@ write_platform_specific_cmdline() {
     fi
     if in_array "$platform" "lorikeet" "hedgehog"; then
         cmdline_add processor.max_cstate=1
+        cmdline_add reassign_prefmem
         read_system_eeprom
     fi
 
