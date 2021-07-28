@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+#############################################################################
+# Delta
+#
+# Module contains an implementation of SONiC Platform Base API and
+# provides the platform information
+#
+#############################################################################
+
 try:
     import os.path
     from sonic_platform_base.sfp_base import SfpBase

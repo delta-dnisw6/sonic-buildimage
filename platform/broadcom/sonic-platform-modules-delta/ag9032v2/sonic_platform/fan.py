@@ -16,8 +16,6 @@ except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
 class Fan(FanBase):
-    """DellEMC Platform-specific Fan class"""
-
     def __init__(self, fantray_index=1, fan_index=1, psu_fan=False, dependency=None):
         FanBase.__init__(self)
         self.is_psu_fan = psu_fan
@@ -105,11 +103,6 @@ class Fan(FanBase):
         Returns:
             A string, either FAN_DIRECTION_INTAKE or FAN_DIRECTION_EXHAUST
             depending on fan direction
-
-        Notes:
-            In DellEMC platforms,
-            - Forward/Exhaust : Air flows from Port side to Fan side.
-            - Reverse/Intake  : Air flows from Fan side to Port side.
         """
         return None
 

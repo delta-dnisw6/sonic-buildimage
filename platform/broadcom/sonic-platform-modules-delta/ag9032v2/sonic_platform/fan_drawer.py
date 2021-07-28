@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ########################################################################
-# DellEMC S5248F 
+# Delta AG9032V2
 #
 # Module contains an implementation of SONiC Platform Base API and
 # provides the Fan-Drawers' information available in the platform.
@@ -14,18 +14,14 @@ try:
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
-S5248F_FANS_PER_FANTRAY = 1
-
+AG9032V2_FANS_PER_FANTRAY = 1
 
 class FanDrawer(FanDrawerBase):
-    """DellEMC Platform-specific Fan class"""
-
     def __init__(self, fantray_index):
 
         FanDrawerBase.__init__(self)
-        # FanTray is 1-based in DellEMC platforms
         self.fantrayindex = fantray_index + 1
-        for i in range(S5248F_FANS_PER_FANTRAY):
+        for i in range(AG9032V2_FANS_PER_FANTRAY):
             self._fan_list.append(Fan(fantray_index, i))
 
     def get_name(self):

@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+
+#############################################################################
 #
-# Name: chassis.py, version: 1.0
+# Module contains an implementation of SONiC Platform Base API and
+# provides the platform information
 #
-# Description: Module contains the definitions of SONiC platform APIs
-#
+#############################################################################
 
 try:
     import time
@@ -18,7 +20,6 @@ try:
 except ImportError as e:
     raise ImportError(str(e) + "- required module not found")
 
-MAX_AG9032V2_MODULE = 5
 MAX_AG9032V2_PSU = 2
 MAX_AG9032V2_FANTRAY = 5
 MAX_AG9032V2_FAN = 1

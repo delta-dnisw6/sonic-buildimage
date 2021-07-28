@@ -1,5 +1,12 @@
 #!/usr/bin/env python
+
+########################################################################
+# Delta AG9032V2
 #
+# Module contains an implementation of SONiC Platform Base API and
+# provides the PSUs' information which are available in the platform
+#
+########################################################################
 
 import os.path
 import re
@@ -20,9 +27,6 @@ class Psu(PsuBase):
         self._fan_list.append(Fan(fan_index=self.index, psu_fan=True,
                               dependency=self))
 
-##############################################
-# Device methods
-##############################################
     def get_name(self):
         """
         Retrieves the name of the device
@@ -117,10 +121,6 @@ class Psu(PsuBase):
         except IOError:
             raise SyntaxError
         return True
-
-##############################################
-# PSU methods
-##############################################
 
     def get_voltage(self):
         """

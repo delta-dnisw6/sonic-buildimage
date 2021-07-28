@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 ########################################################################
-# DellEMC S6100
+# Delta AG9032V2
 #
 # Module contains an implementation of SONiC Platform Base API and
 # provides the Thermals' information which are available in the platform
@@ -18,8 +18,6 @@ except ImportError as e:
 
 
 class Thermal(ThermalBase):
-    """DellEMC Platform-specific Thermal class"""
-
     THERMAL_NAME = (
         'Sensor_Temp_1', 'Sensor_Temp_2', 'Sensor_Temp_3',
         'Sensor_Temp_4', 'Sensor_Temp_5')

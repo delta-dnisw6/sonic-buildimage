@@ -1,10 +1,11 @@
 #!/usr/bin/env python
-#
-# Name: platform.py, version: 1.0
-#
-# Description: Module contains the definitions of SONiC platform APIs
-#
 
+#############################################################################
+#
+# Module contains an implementation of SONiC Platform Base API and
+# provides the platform information
+#
+#############################################################################
 
 try:
     from sonic_platform_base.platform_base import PlatformBase
