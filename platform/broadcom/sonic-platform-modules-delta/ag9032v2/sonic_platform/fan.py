@@ -70,7 +70,7 @@ class Fan(FanBase):
         if self.is_psu_fan:
             p = os.popen("ipmitool raw 0x38 0x2 3 0x6a 0x3 1")
             content = p.readline().rstrip()
-            reg_value = int(content)
+            reg_value = int(content,16)
             if self.fanindex == 1:
                 mask = (1 << 7)
                 if reg_value & mask == 0x80:
@@ -128,7 +128,7 @@ class Fan(FanBase):
             content = p.read().rstrip()
             info_req = re.search(r"%s\s*:(.*)" %  "Sensor Reading", content)
             if not info_req:
-                return "NA"
+                return "N/A"
             fan_speed = info_req.group(1).split(' ')[1]
             p.close()
         except IOError:

@@ -44,7 +44,7 @@ class Psu(PsuBase):
         try:
             p = os.popen("ipmitool raw 0x38 0x2 3 0x6a 0x3 1")
             content = p.readline().rstrip()
-            reg_value = int(content)
+            reg_value = int(content,16)
             if self.index == 1:
                 mask = (1 << 7)
                 if reg_value & mask == 0x80:
