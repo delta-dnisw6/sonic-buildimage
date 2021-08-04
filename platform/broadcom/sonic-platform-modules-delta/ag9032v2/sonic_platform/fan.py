@@ -24,7 +24,6 @@ class Fan(FanBase):
             self.fanindex = fan_index + 1
         else:
             self.fanindex = fan_index
-
     def get_name(self):
         """
         Retrieves the fan name
@@ -65,28 +64,28 @@ class Fan(FanBase):
             bool: True if fan is present, False if not
         """
         presence = False
-        if self.is_psu_fan:
-            p = os.popen("ipmitool raw 0x38 0x2 3 0x6a 0x3 1")
-            content = p.readline().rstrip()
-            reg_value = int(content,16)
-            if self.fanindex == 1:
-                mask = (1 << 7)
-                if reg_value & mask == 0x80:
-                   presence = False
+        try:
+            if self.is_psu_fan:
+                p = os.popen("ipmitool raw 0x38 0x2 3 0x6a 0x3 1")
+                content = p.readline().rstrip()
+                reg_value = int(content,16)
+                if self.fanindex == 1:
+                    mask = (1 << 7)
+                else:
+                    mask = (1 << 3)
+                if reg_value & mask == 0:
+                    presence = True
             else:
-                mask = (1 << 3)
-                if reg_value & mask == 0x08:
-                   presence = False
+                command = ("ipmitool raw 0x38 0x0e")
+                p = os.popen(command)
+                content = p.readline().rstrip()
+                reg_value = int(content, 16)
+                mask = (16 >> self.fantrayindex - 1)
+                if reg_value & mask == 0:
+                    presence = True
             p.close()
-        else:
-            command = ("ipmitool raw 0x38 0x0e")
-            p = os.popen(command)
-            content = p.readline().rstrip()
-            reg_value = int(content, 16)
-            mask = (16 >> self.fantrayindex - 1)
-            if reg_value & mask == 0:
-                presence = True
-            p.close()
+        except IOError:
+            return False
         return presence
 
     def get_status(self):
@@ -95,7 +94,24 @@ class Fan(FanBase):
         Returns:
             bool: True if FAN is operating properly, False if not
         """
-        return self.get_presence()
+        presence = True
+        if self.is_psu_fan:
+            try:
+                p = os.popen("ipmitool raw 0x38 0x2 3 0x6a 0x3 1")
+                content = p.readline().rstrip()
+                reg_value = int(content,16)
+                if self.fanindex == 1:
+                    mask = (1 << 6)
+                else:
+                    mask = (1 << 2)
+                if reg_value & mask == 0:
+                    presence = False
+                p.close()   
+            except IOError:
+                return False
+        else:
+            return self.get_presence()
+        return presence
 
     def get_direction(self):
         """
@@ -103,6 +119,10 @@ class Fan(FanBase):
         Returns:
             A string, either FAN_DIRECTION_INTAKE or FAN_DIRECTION_EXHAUST
             depending on fan direction
+
+        Notes:
+            - Forward/Exhaust : Air flows from Port side to Fan side.
+            - Reverse/Intake  : Air flows from Fan side to Port side.
         """
         return None
 
@@ -114,9 +134,9 @@ class Fan(FanBase):
         """
         try:
             if self.is_psu_fan:
-                command = ("ipmitool sdr get PSU{}_Fan").format(self.fanindex)
+                command = "ipmitool sdr get PSU{}_Fan".format(self.fanindex)
             else:
-                command = ("ipmitool sdr get Fantray_{}_[]").format(self.fantrayindex, self.fanindex)
+                command = "ipmitool sdr get Fantray_{}_{}".format(self.fantrayindex, self.fanindex)
             p = os.popen(command)
             content = p.read().rstrip()
             info_req = re.search(r"%s\s*:(.*)" %  "Sensor Reading", content)

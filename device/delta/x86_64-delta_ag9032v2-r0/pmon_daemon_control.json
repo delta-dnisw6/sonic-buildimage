@@ -4,6 +4,6 @@
     "skip_fancontrol": false,
     "skip_ledd": true,
     "skip_psud": false,
-    "skip_xcvrd": true,
-    "skip_pcied": true
+    "skip_xcvrd": false,
+    "skip_pcied": false
 }
