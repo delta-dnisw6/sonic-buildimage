@@ -910,9 +910,9 @@ class Sfp(SfpBase):
         """
         Retrives the reset status of SFP
         """
-        self.port_num = self.index - 1
+        self.port_num = self.index
         # Check for invalid port_num
-        if self.port_num < self.port_start or self.port_num > self.PORT_END_QSFP:
+        if self.port_num < self.port_start or self.port_num > 32:
             return False
         try:
             reg_file = open("/sys/devices/platform/delta-ag9032v2-swpld1.0/qsfp_reset", "r+")
@@ -926,7 +926,7 @@ class Sfp(SfpBase):
         reg_value = int(content, 16)
 
         # Mask off the bit corresponding to our port
-        mask = (1 << (self.port_end - self.port_num) - 1)
+        mask = (1 << (32 - self.port_num))
 
         # ResetL is active low
         reg_value = reg_value & ~mask
@@ -1046,9 +1046,9 @@ class Sfp(SfpBase):
         """
         Retrieves the lpmode(low power mode) of this SFP
         """
-        self.port_num = self.index - 1
+        self.port_num = self.index
         # Check for invalid port_num
-        if self.port_num < self.port_start or self.port_num > self.PORT_END_QSFP:
+        if self.port_num < self.port_start or self.port_num > 32:
             return False
 
         try:
@@ -1062,7 +1062,7 @@ class Sfp(SfpBase):
         reg_value = int(content, 16)
 
         # Mask off the bit corresponding to our port
-        mask = (1 << (self.port_end - self.port_num) - 1)
+        mask = (1 << (32 - self.port_num))
 
         # LPMode is active high
         if reg_value & mask == 0:
@@ -1252,9 +1252,9 @@ class Sfp(SfpBase):
         Reset the SFP and returns all user settings to their default state
         """
         QSFP_RESET_REGISTER_DEVICE_FILE = "/sys/devices/platform/delta-ag9032v2-swpld1.0/qsfp_reset"
-        self.port_num = self.index - 1
+        self.port_num = self.index
         # Check for invalid port_num
-        if self.port_num < self.port_start or self.port_num > self.PORT_END_QSFP:
+        if self.port_num < self.port_start or self.port_num > 32:
             return False
 
         try:
@@ -1269,7 +1269,7 @@ class Sfp(SfpBase):
         reg_value = int(content, 16)
 
         # Mask off the bit corresponding to our port
-        mask = (1 << (self.port_end - self.port_num) - 1)
+        mask = (1 << (self.port_end - 32))
 
         # ResetL is active low
         reg_value = reg_value & ~mask
@@ -1300,9 +1300,9 @@ class Sfp(SfpBase):
         """
         Sets the lpmode(low power mode) of this SFP
         """
-        self.port_num = self.index - 1
+        self.port_num = self.index
         # Check for invalid port_num
-        if self.port_num < self.port_start or self.port_num > self.PORT_END_QSFP:
+        if self.port_num < self.port_start or self.port_num > 32:
             return False
 
         try:
@@ -1317,7 +1317,7 @@ class Sfp(SfpBase):
         reg_value = int(content, 16)
 
         # Mask off the bit corresponding to our port
-        mask = (1 << (self.port_end - self.port_num) - 1)
+        mask = (1 << (32 - self.port_num))
 
         # LPMode is active high; set or clear the bit accordingly
         if lpmode is True:
